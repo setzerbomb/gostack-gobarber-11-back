@@ -1,6 +1,7 @@
 import { startOfHour, parseISO } from 'date-fns';
+import { getCustomRepository } from 'typeorm';
 
-import Appointment from '../model/Appointment';
+import Appointment from '../models/Appointment';
 import AppointmentsRepository from '../repositories/AppointmentsRepository';
 
 interface AppointmentDTO {
@@ -8,40 +9,33 @@ interface AppointmentDTO {
   provider: string;
 }
 
-interface AppointmentsServiceInterface {
-  appointmentRepository: AppointmentsRepository;
-}
-
 class AppointmentsService {
-  private appointmentRepository: AppointmentsRepository;
-
-  constructor({ appointmentRepository }: AppointmentsServiceInterface) {
-    this.appointmentRepository = appointmentRepository;
+  private getRepository() {
+    return getCustomRepository(AppointmentsRepository);
   }
 
-  public store(data: AppointmentDTO): Appointment {
-    const { date, provider } = data;
+  public async store({ date, provider }: AppointmentDTO): Promise<Appointment> {
+    const repository = this.getRepository();
 
     const parsedDate = startOfHour(parseISO(date));
 
-    const findAppointmentInSameDate = this.appointmentRepository.findByDate(
-      parsedDate,
-    );
+    const findAppointmentInSameDate = await repository.findByDate(parsedDate);
 
     if (!findAppointmentInSameDate) {
-      const appointment: Appointment = new Appointment({
-        provider,
+      const appointment = await repository.create({
         date: parsedDate,
+        provider,
       });
-
-      return this.appointmentRepository.store(appointment);
+      await repository.save(appointment);
+      return appointment;
     }
 
     throw new Error('Já existe um horário marcado nessa data');
   }
 
-  public list(): Array<Appointment> {
-    return this.appointmentRepository.list();
+  public async list(): Promise<Appointment[]> {
+    const appointments = await this.getRepository().find();
+    return appointments;
   }
 }
 
