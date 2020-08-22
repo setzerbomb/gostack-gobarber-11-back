@@ -9,10 +9,10 @@ const AppointmentController = () => {
 
   const self = {
     store: async (req: Request, res: Response) => {
-      const { provider, date } = req.body;
+      const { providerId, date } = req.body;
 
       try {
-        return res.json(await appointmentsService.store({ provider, date }));
+        return res.json(await appointmentsService.store({ providerId, date }));
       } catch (e) {
         return message(res, 400, e.message);
       }

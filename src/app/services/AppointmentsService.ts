@@ -6,7 +6,7 @@ import AppointmentsRepository from '../repositories/AppointmentsRepository';
 
 interface AppointmentDTO {
   date: string;
-  provider: string;
+  providerId: string;
 }
 
 class AppointmentsService {
@@ -14,7 +14,10 @@ class AppointmentsService {
     return getCustomRepository(AppointmentsRepository);
   }
 
-  public async store({ date, provider }: AppointmentDTO): Promise<Appointment> {
+  public async store({
+    date,
+    providerId,
+  }: AppointmentDTO): Promise<Appointment> {
     const repository = this.getRepository();
 
     const parsedDate = startOfHour(parseISO(date));
@@ -22,9 +25,9 @@ class AppointmentsService {
     const findAppointmentInSameDate = await repository.findByDate(parsedDate);
 
     if (!findAppointmentInSameDate) {
-      const appointment = await repository.create({
+      const appointment = repository.create({
         date: parsedDate,
-        provider,
+        providerId,
       });
       await repository.save(appointment);
       return appointment;
