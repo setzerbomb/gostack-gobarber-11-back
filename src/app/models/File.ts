@@ -4,13 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
-import File from './File';
 
-@Entity('users')
-class User {
+@Entity('files')
+class File {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -18,17 +15,7 @@ class User {
   name: string;
 
   @Column()
-  email: string;
-
-  @Column()
-  password: string;
-
-  @ManyToOne(() => File)
-  @JoinColumn({ name: 'avatar_id' })
-  avatar: File;
-
-  @Column({ name: 'avatar_id' })
-  avatarId: string;
+  path: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -37,4 +24,4 @@ class User {
   updatedAt: Date;
 }
 
-export default User;
+export default File;

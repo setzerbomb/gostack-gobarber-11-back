@@ -11,11 +11,7 @@ const AppointmentController = () => {
     store: async (req: Request, res: Response) => {
       const { providerId, date } = req.body;
 
-      try {
-        return res.json(await appointmentsService.store({ providerId, date }));
-      } catch (e) {
-        return message(res, 400, e.message);
-      }
+      return res.json(await appointmentsService.store({ providerId, date }));
     },
     list: async (req: Request, res: Response) => {
       return res.json(await appointmentsService.list());

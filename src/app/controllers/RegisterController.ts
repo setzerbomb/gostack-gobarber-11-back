@@ -11,17 +11,11 @@ const UserController = () => {
     store: async (req: Request, res: Response) => {
       const { name, email, password } = req.body;
 
-      try {
-        const user = await usersService.store({
-          name,
-          email,
-          password,
-        });
-
-        return res.json(user);
-      } catch (e) {
-        return message(res, 400, e.message);
-      }
+      const user = await usersService.store({
+        name,
+        email,
+        password,
+      });
     },
   };
 

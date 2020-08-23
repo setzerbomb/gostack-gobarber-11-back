@@ -9,15 +9,11 @@ const SessionController = () => {
 
   const self = {
     store: async (req: Request, res: Response) => {
-      try {
-        const { email, password } = req.body;
+      const { email, password } = req.body;
 
-        const { user, token } = await sessionsService.auth({ email, password });
+      const { user, token } = await sessionsService.auth({ email, password });
 
-        return res.json({ user, token });
-      } catch (e) {
-        return message(res, 400, e.message);
-      }
+      return res.json({ user, token });
     },
   };
 

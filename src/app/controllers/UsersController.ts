@@ -8,11 +8,21 @@ const UserController = () => {
   const usersService: UsersService = new UsersService();
 
   const self = {
-    store: async (req: Request, res: Response) => {
-      return message(res, 400, 'To do');
-    },
-    list: async (req: Request, res: Response) => {
-      return message(res, 400, 'To do');
+    update: async (req: Request, res: Response) => {
+      const {
+        fileId: avatar,
+        params: { id },
+        body: { name, password, passwordConfirmation },
+      } = req;
+      const user = await usersService.update(
+        id,
+        name,
+        password,
+        passwordConfirmation,
+        avatar,
+      );
+
+      return res.json(user);
     },
   };
 

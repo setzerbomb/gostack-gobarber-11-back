@@ -4,6 +4,8 @@ import { getCustomRepository } from 'typeorm';
 import Appointment from '../models/Appointment';
 import AppointmentsRepository from '../repositories/AppointmentsRepository';
 
+import AppError from '../errors/AppError';
+
 interface AppointmentDTO {
   date: string;
   providerId: string;
@@ -33,7 +35,7 @@ class AppointmentsService {
       return appointment;
     }
 
-    throw new Error('Já existe um horário marcado nessa data');
+    throw new AppError('Já existe um horário marcado nessa data');
   }
 
   public async list(): Promise<Appointment[]> {

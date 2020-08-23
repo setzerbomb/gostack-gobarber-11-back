@@ -5,7 +5,9 @@ import authConfig from '../../config/auth';
 
 import UsersRepository from '../repositories/UsersRepository';
 
-interface SessionDTO {
+import AppError from '../errors/AppError';
+
+interface Request {
   email: string;
   password: string;
 }
@@ -23,7 +25,7 @@ class SessionsService {
     return getCustomRepository(UsersRepository);
   }
 
-  public async auth({ email, password }: SessionDTO): Promise<Response> {
+  public async auth({ email, password }: Request): Promise<Response> {
     const repository = this.getRepository();
 
     const user = await repository.findByEmail(email);
@@ -46,7 +48,7 @@ class SessionsService {
       }
     }
 
-    throw new Error('Incorrect Email or Password');
+    throw new AppError('Incorrect Email or Password');
   }
 }
 
