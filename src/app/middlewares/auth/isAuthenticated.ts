@@ -16,28 +16,32 @@ export default async function isAuthenticated(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const {
-    headers: { authorization },
-  } = req;
+  try {
+    const {
+      headers: { authorization },
+    } = req;
 
-  if (!authorization) {
-    throw new AppError('Access denied', 401);
+    if (!authorization) {
+      throw new Error('Access denied');
+    }
+
+    const [, token] = authorization.split(' ');
+
+    const decoded = verify(token, authConfig.jwt.secret);
+
+    const { sub: id } = decoded as TokenPayload;
+
+    if (!id) throw new Error('JWT subject is missing');
+
+    if (!(await new UsersService().exists(id)))
+      throw new Error('Provided user does not exists');
+
+    req.user = {
+      id,
+    };
+
+    return next();
+  } catch (e) {
+    throw new AppError('Access Denied');
   }
-
-  const [, token] = authorization.split(' ');
-
-  const decoded = verify(token, authConfig.jwt.secret);
-
-  const { sub: id } = decoded as TokenPayload;
-
-  if (!id) throw new AppError('JWT subject is missing', 401);
-
-  if (!(await new UsersService().exists(id)))
-    throw new AppError('Provided user does not exists', 401);
-
-  req.user = {
-    id,
-  };
-
-  return next();
 }
