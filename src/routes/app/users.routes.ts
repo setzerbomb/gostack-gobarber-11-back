@@ -21,4 +21,6 @@ usersRouter.patch(
 
 usersRouter.post('/register', RegisterController.store);
 
+usersRouter.get('/', isAuthenticated, UsersController.find);
+
 export default usersRouter;

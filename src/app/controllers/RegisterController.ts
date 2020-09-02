@@ -16,6 +16,8 @@ const UserController = () => {
         email,
         password,
       });
+
+      return res.json(user);
     },
   };
 

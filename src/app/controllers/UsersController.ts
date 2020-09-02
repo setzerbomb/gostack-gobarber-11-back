@@ -11,17 +11,21 @@ const UserController = () => {
     update: async (req: Request, res: Response) => {
       const {
         fileId: avatar,
-        params: { id },
         body: { name, password, passwordConfirmation },
       } = req;
       const user = await usersService.update(
-        id,
+        req.user.id,
         name,
         password,
         passwordConfirmation,
         avatar,
       );
 
+      return res.json(user);
+    },
+    find: async (req: Request, res: Response) => {
+      const user = await usersService.find(req.user.id);
+      delete user?.password;
       return res.json(user);
     },
   };

@@ -70,7 +70,14 @@ class UsersService {
       }
     }
 
-    if (avatar) user.avatarId = avatar;
+    if (avatar) {
+      user.avatarId = avatar;
+      const foundAvatar = await getCustomRepository(FileRepository).findOne(
+        avatar,
+      );
+      if (foundAvatar) user.avatar = foundAvatar;
+    }
+
     user.name = name || user.name;
     user.password = password ? await hash(password, 8) : user.password;
 
