@@ -21,7 +21,7 @@ class FilesService {
   }
 
   private build(file: File): Response {
-    return { file, url: file.path };
+    return { file, url: `http://localhost:3333/files/${file.path}` };
   }
 
   public async store({ name, path }: Request): Promise<Response> {

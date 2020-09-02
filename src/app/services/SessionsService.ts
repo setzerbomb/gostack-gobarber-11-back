@@ -4,8 +4,11 @@ import { sign } from 'jsonwebtoken';
 import authConfig from '../../config/auth';
 
 import UsersRepository from '../repositories/UsersRepository';
+import FilesService from './FilesService';
 
 import AppError from '../errors/AppError';
+
+import File from '../models/File';
 
 interface Request {
   email: string;
@@ -16,6 +19,7 @@ interface Response {
   user: {
     name: string;
     updatedAt: Date;
+    avatar: { url: string } | undefined;
   };
   token: string;
 }
@@ -35,7 +39,11 @@ class SessionsService {
 
       if (passwordMatched) {
         delete user.password;
-        const { id, name, updatedAt } = user;
+        const { id, name, updatedAt, avatarId } = user;
+        const avatar = avatarId
+          ? await new FilesService().find(avatarId)
+          : null;
+        if (avatar) delete avatar.file;
 
         const { secret, expiresIn } = authConfig.jwt;
 
@@ -44,7 +52,7 @@ class SessionsService {
           subject: id,
         });
 
-        return { user: { name, updatedAt }, token };
+        return { user: { name, updatedAt, avatar }, token };
       }
     }
 
