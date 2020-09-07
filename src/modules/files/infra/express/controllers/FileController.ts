@@ -3,17 +3,16 @@ import { Request, Response, NextFunction } from 'express';
 import message from '@shared/functions/message';
 
 import FilesService from '@modules/files/services/FilesService';
+import { container } from 'tsyringe';
 
 const FileController = () => {
-  const filesService: FilesService = new FilesService();
-
   const self = {
     store: async (req: Request, res: Response, next: NextFunction) => {
+      const filesService: FilesService = container.resolve(FilesService);
+
       const { originalname: name, filename: path } = req.file;
 
-      const {
-        file: { id },
-      } = await filesService.store({ name, path });
+      const { id } = await filesService.store({ name, path });
 
       req.fileId = id;
 

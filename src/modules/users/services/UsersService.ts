@@ -4,28 +4,42 @@ import fs from 'fs';
 import path from 'path';
 
 import User from '@modules/users/infra/typeorm/entities/User';
-import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
-import FileRepository from '@modules/files/infra/typeorm/repositories/FilesRepository';
+import IUsersRepository from '@modules/users/interfaces/repositories/IUsersRepository';
+import IFilesRepository from '@modules/files/interfaces/repositories/IFilesRepository';
 
 import AppError from '@shared/errors/AppError';
 
 import uploadConfig from '@config/multer';
+import { injectable, inject } from 'tsyringe';
 
-interface UserDTO {
+interface IRequest {
   name: string;
   email: string;
   password: string;
 }
 
+@injectable()
 class UsersService {
+  private usersRepository: IUsersRepository;
+
+  private filesRepository: IFilesRepository;
+
+  constructor(
+    @inject('UsersRepository') usersRepository: IUsersRepository,
+    @inject('FilesRepository') filesRepository: IFilesRepository,
+  ) {
+    this.filesRepository = filesRepository;
+    this.usersRepository = usersRepository;
+  }
+
   private getRepository() {
-    return getCustomRepository(UsersRepository);
+    return this.usersRepository;
   }
 
   public async find(id: string): Promise<User | undefined> {
     const repository = this.getRepository();
 
-    const user = await repository.findOne(id);
+    const user = await repository.getOne(id);
 
     return user;
   }
@@ -33,7 +47,7 @@ class UsersService {
   public async exists(id: string): Promise<boolean> {
     const repository = this.getRepository();
 
-    const exists = (await repository.count({ id })) > 0;
+    const exists = (await repository.count(id)) > 0;
 
     return exists;
   }
@@ -55,9 +69,7 @@ class UsersService {
       throw new AppError('Passwords are not matching');
 
     if (user.avatarId && avatar) {
-      const file = await getCustomRepository(FileRepository).findOne(
-        user.avatarId,
-      );
+      const file = await this.filesRepository.getOne(user.avatarId);
 
       if (file) {
         const userAvatarFilePath = path.join(uploadConfig.directory, file.path);
@@ -66,28 +78,26 @@ class UsersService {
         if (userAvatarFileExists) {
           await fs.promises.unlink(userAvatarFilePath);
         }
-        await getCustomRepository(FileRepository).delete(file.id);
+        await this.filesRepository.delete(file.id);
       }
     }
 
     if (avatar) {
       user.avatarId = avatar;
-      const foundAvatar = await getCustomRepository(FileRepository).findOne(
-        avatar,
-      );
+      const foundAvatar = await this.filesRepository.getOne(avatar);
       if (foundAvatar) user.avatar = foundAvatar;
     }
 
     user.name = name || user.name;
     user.password = password ? await hash(password, 8) : user.password;
 
-    await repository.save(user);
+    await repository.update(user);
     delete user.password;
 
     return user;
   }
 
-  public async store({ name, email, password }: UserDTO): Promise<User> {
+  public async store({ name, email, password }: IRequest): Promise<User> {
     const repository = this.getRepository();
 
     const checkUserExists = await repository.findByEmail(email);
@@ -98,13 +108,11 @@ class UsersService {
 
     const hashedPassword = await hash(password, 8);
 
-    const user = repository.create({
+    const user = await repository.save({
       name,
       email,
       password: hashedPassword,
     });
-
-    await repository.save(user);
 
     delete user.password;
 

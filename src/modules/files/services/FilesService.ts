@@ -1,51 +1,47 @@
-import { getCustomRepository } from 'typeorm';
-
 import AppError from '@shared/errors/AppError';
 import File from '@modules/files/infra/typeorm/entities/File';
-import FilesRepository from '@modules/files/infra/typeorm/repositories/FilesRepository';
+
+import IFilesRepository from '@modules/files/interfaces/repositories/IFilesRepository';
+import { inject, injectable } from 'tsyringe';
 
 interface Request {
   name: string;
   path: string;
 }
 
-interface Response {
-  file: File;
-  url: string;
-}
-
+@injectable()
 class FilesService {
+  private filesRepository: IFilesRepository;
+
+  constructor(@inject('FilesRepository') filesRepository: IFilesRepository) {
+    this.filesRepository = filesRepository;
+  }
+
   private getRepository() {
-    return getCustomRepository(FilesRepository);
+    return this.filesRepository;
   }
 
-  private build(file: File): Response {
-    return { file, url: `http://localhost:3333/files/${file.path}` };
-  }
-
-  public async store({ name, path }: Request): Promise<Response> {
+  public async store({ name, path }: Request): Promise<File> {
     const repository = this.getRepository();
 
-    const file = repository.create({
+    const file = await repository.save({
       name,
       path,
     });
 
-    await repository.save(file);
-
-    return this.build(file);
+    return file;
   }
 
-  public async find(id: string): Promise<Response> {
+  public async find(id: string): Promise<File> {
     const repository = this.getRepository();
 
-    const file = await repository.findOne(id);
+    const file = await repository.getOne(id);
 
     if (!file) {
       throw new AppError('File not found');
     }
 
-    return this.build(file);
+    return file;
   }
 }
 

@@ -4,6 +4,8 @@ import authConfig from '@config/auth';
 import UsersService from '@modules/users/services/UsersService';
 
 import AppError from '@shared/errors/AppError';
+import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
+import FilesRepository from '@modules/files/infra/typeorm/repositories/FilesRepository';
 
 interface TokenPayload {
   iat: number;
@@ -33,7 +35,12 @@ export default async function isAuthenticated(
 
     if (!id) throw new Error('JWT subject is missing');
 
-    if (!(await new UsersService().exists(id)))
+    if (
+      !(await new UsersService(
+        new UsersRepository(),
+        new FilesRepository(),
+      ).exists(id))
+    )
       throw new Error('Provided user does not exists');
 
     req.user = {

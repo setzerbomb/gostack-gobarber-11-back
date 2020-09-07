@@ -1,19 +1,19 @@
-import { getCustomRepository } from 'typeorm';
 import { compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import authConfig from '@config/auth';
 
-import UsersRepository from '@modules/users/infra/typeorm/repositories/UsersRepository';
-import FilesService from '@modules/files/services/FilesService';
+import IUsersRepository from '@modules/users/interfaces/repositories/IUsersRepository';
+import IFilesRepository from '@modules/files/interfaces/repositories/IFilesRepository';
 
 import AppError from '@shared/errors/AppError';
+import { injectable, inject } from 'tsyringe';
 
-interface Request {
+interface IRequest {
   email: string;
   password: string;
 }
 
-interface Response {
+interface IResponse {
   user: {
     name: string;
     updatedAt: Date;
@@ -22,12 +22,25 @@ interface Response {
   token: string;
 }
 
+@injectable()
 class SessionsService {
-  private getRepository() {
-    return getCustomRepository(UsersRepository);
+  private usersRepository: IUsersRepository;
+
+  private filesRepository: IFilesRepository;
+
+  constructor(
+    @inject('UsersRepository') usersRepository: IUsersRepository,
+    @inject('FilesRepository') filesRepository: IFilesRepository,
+  ) {
+    this.filesRepository = filesRepository;
+    this.usersRepository = usersRepository;
   }
 
-  public async auth({ email, password }: Request): Promise<Response> {
+  private getRepository() {
+    return this.usersRepository;
+  }
+
+  public async auth({ email, password }: IRequest): Promise<IResponse> {
     const repository = this.getRepository();
 
     const user = await repository.findByEmail(email);
@@ -39,9 +52,8 @@ class SessionsService {
         delete user.password;
         const { id, name, updatedAt, avatarId } = user;
         const avatar = avatarId
-          ? await new FilesService().find(avatarId)
+          ? await this.filesRepository.getOne(avatarId)
           : null;
-        if (avatar) delete avatar.file;
 
         const { secret, expiresIn } = authConfig.jwt;
 
@@ -50,7 +62,14 @@ class SessionsService {
           subject: id,
         });
 
-        return { user: { name, updatedAt, avatar }, token };
+        return {
+          user: {
+            name,
+            updatedAt,
+            avatar: avatar ? { url: avatar.path } : null,
+          },
+          token,
+        };
       }
     }
 

@@ -17,6 +17,8 @@ class File {
   @Column()
   path: string;
 
+  serverPath: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

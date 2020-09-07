@@ -1,25 +1,33 @@
 import { startOfHour, parseISO } from 'date-fns';
-import { getCustomRepository } from 'typeorm';
 
 import Appointment from '@modules/appointments/infra/typeorm/entities/Appointment';
-import AppointmentsRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentsRepository';
+
+import IAppointmentsRepository from '@modules/appointments/interfaces/repositories/IAppointmentsRepository';
 
 import AppError from '@shared/errors/AppError';
+import { inject, injectable } from 'tsyringe';
 
-interface AppointmentDTO {
+interface IRequest {
   date: string;
   providerId: string;
 }
 
+@injectable()
 class AppointmentsService {
-  private getRepository() {
-    return getCustomRepository(AppointmentsRepository);
+  private appointmentsRepository: IAppointmentsRepository;
+
+  constructor(
+    @inject('AppointmentsRepository')
+    appointmentsRepository: IAppointmentsRepository,
+  ) {
+    this.appointmentsRepository = appointmentsRepository;
   }
 
-  public async store({
-    date,
-    providerId,
-  }: AppointmentDTO): Promise<Appointment> {
+  private getRepository() {
+    return this.appointmentsRepository;
+  }
+
+  public async store({ date, providerId }: IRequest): Promise<Appointment> {
     const repository = this.getRepository();
 
     const parsedDate = startOfHour(parseISO(date));
@@ -27,11 +35,10 @@ class AppointmentsService {
     const findAppointmentInSameDate = await repository.findByDate(parsedDate);
 
     if (!findAppointmentInSameDate) {
-      const appointment = repository.create({
+      const appointment = await repository.save({
         date: parsedDate,
         providerId,
       });
-      await repository.save(appointment);
       return appointment;
     }
 
@@ -39,7 +46,7 @@ class AppointmentsService {
   }
 
   public async list(): Promise<Appointment[]> {
-    const appointments = await this.getRepository().find();
+    const appointments = await this.getRepository().list();
     return appointments;
   }
 }
