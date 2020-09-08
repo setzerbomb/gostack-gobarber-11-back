@@ -1,4 +1,3 @@
-import { compare } from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 import authConfig from '@config/auth';
 
@@ -7,6 +6,7 @@ import IFilesRepository from '@modules/files/interfaces/repositories/IFilesRepos
 
 import AppError from '@shared/errors/AppError';
 import { injectable, inject } from 'tsyringe';
+import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 
 interface IRequest {
   email: string;
@@ -28,12 +28,16 @@ class SessionsService {
 
   private filesRepository: IFilesRepository;
 
+  private hashProvider: IHashProvider;
+
   constructor(
     @inject('UsersRepository') usersRepository: IUsersRepository,
     @inject('FilesRepository') filesRepository: IFilesRepository,
+    @inject('HashProvider') hashProvider: IHashProvider,
   ) {
     this.filesRepository = filesRepository;
     this.usersRepository = usersRepository;
+    this.hashProvider = hashProvider;
   }
 
   private getRepository() {
@@ -46,7 +50,10 @@ class SessionsService {
     const user = await repository.findByEmail(email);
 
     if (user) {
-      const passwordMatched = await compare(password, user.password);
+      const passwordMatched = await this.hashProvider.compareHash(
+        password,
+        user.password,
+      );
 
       if (passwordMatched) {
         delete user.password;

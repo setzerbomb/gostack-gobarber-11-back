@@ -16,13 +16,15 @@ const UserController = () => {
         fileId: avatar,
         body: { name, password, passwordConfirmation },
       } = req;
-      const user = await usersService.update(
-        req.user.id,
+      const user = await usersService.update({
+        id: req.user.id,
         name,
         password,
         passwordConfirmation,
         avatar,
-      );
+      });
+
+      delete user.password;
 
       return res.json(user);
     },

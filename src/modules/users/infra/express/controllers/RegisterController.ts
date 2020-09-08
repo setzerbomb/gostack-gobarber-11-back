@@ -17,6 +17,8 @@ const UserController = () => {
         password,
       });
 
+      delete user.password;
+
       return res.json(user);
     },
   };

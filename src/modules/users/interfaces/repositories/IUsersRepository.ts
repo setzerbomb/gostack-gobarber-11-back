@@ -6,7 +6,7 @@ interface IUsersRepository {
   getOne(id: string): Promise<User | undefined>;
   findByEmail(email: string): Promise<User | undefined>;
   count(id: string): Promise<number>;
-  update(user: User): Promise<User>;
+  update(user: User): Promise<User | undefined>;
 }
 
 export default IUsersRepository;

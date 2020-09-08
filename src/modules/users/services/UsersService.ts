@@ -1,5 +1,3 @@
-import { getCustomRepository } from 'typeorm';
-import { hash } from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -11,6 +9,9 @@ import AppError from '@shared/errors/AppError';
 
 import uploadConfig from '@config/multer';
 import { injectable, inject } from 'tsyringe';
+import IStorageProvider from '@shared/container/providers/StorageProvider/models/IStorageProvider';
+import IUpdateUserDTO from '@modules/users/interfaces/dtos/IUpdateUserDTO';
+import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 
 interface IRequest {
   name: string;
@@ -22,14 +23,22 @@ interface IRequest {
 class UsersService {
   private usersRepository: IUsersRepository;
 
+  private hashProvider: IHashProvider;
+
   private filesRepository: IFilesRepository;
+
+  private storageProvider: IStorageProvider;
 
   constructor(
     @inject('UsersRepository') usersRepository: IUsersRepository,
     @inject('FilesRepository') filesRepository: IFilesRepository,
+    @inject('HashProvider') hashProvider: IHashProvider,
+    @inject('StorageProvider') storageProvider: IStorageProvider,
   ) {
     this.filesRepository = filesRepository;
     this.usersRepository = usersRepository;
+    this.hashProvider = hashProvider;
+    this.storageProvider = storageProvider;
   }
 
   private getRepository() {
@@ -52,13 +61,13 @@ class UsersService {
     return exists;
   }
 
-  public async update(
-    id: string,
-    name: string | undefined,
-    password: string | undefined,
-    passwordConfirmation: string | undefined,
-    avatar: string | undefined,
-  ): Promise<User> {
+  public async update({
+    id,
+    name,
+    password,
+    passwordConfirmation,
+    avatar,
+  }: IUpdateUserDTO): Promise<User> {
     const repository = this.getRepository();
 
     const user = await this.find(id);
@@ -72,11 +81,14 @@ class UsersService {
       const file = await this.filesRepository.getOne(user.avatarId);
 
       if (file) {
-        const userAvatarFilePath = path.join(uploadConfig.directory, file.path);
+        const userAvatarFilePath = path.join(
+          uploadConfig.uploadsFolder,
+          file.path,
+        );
         const userAvatarFileExists = await fs.promises.stat(userAvatarFilePath);
 
         if (userAvatarFileExists) {
-          await fs.promises.unlink(userAvatarFilePath);
+          await this.storageProvider.deleteFile(userAvatarFilePath);
         }
         await this.filesRepository.delete(file.id);
       }
@@ -85,14 +97,18 @@ class UsersService {
     if (avatar) {
       user.avatarId = avatar;
       const foundAvatar = await this.filesRepository.getOne(avatar);
-      if (foundAvatar) user.avatar = foundAvatar;
+      if (foundAvatar) {
+        user.avatar = foundAvatar;
+        await this.storageProvider.saveFile(foundAvatar.path);
+      }
     }
 
     user.name = name || user.name;
-    user.password = password ? await hash(password, 8) : user.password;
+    user.password = password
+      ? await this.hashProvider.generateHash(password)
+      : user.password;
 
     await repository.update(user);
-    delete user.password;
 
     return user;
   }
@@ -106,15 +122,13 @@ class UsersService {
       throw new AppError('Email address already used');
     }
 
-    const hashedPassword = await hash(password, 8);
+    const hashedPassword = await this.hashProvider.generateHash(password);
 
     const user = await repository.save({
       name,
       email,
       password: hashedPassword,
     });
-
-    delete user.password;
 
     return user;
   }

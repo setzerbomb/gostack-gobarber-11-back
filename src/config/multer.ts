@@ -2,10 +2,13 @@ import multer from 'multer';
 import crypto from 'crypto';
 import { extname, resolve } from 'path';
 
+const tmpFolder = resolve(__dirname, '..', '..', 'tmp');
+
 export default {
-  directory: resolve(__dirname, '..', '..', 'tmp', 'uploads'),
+  tmpFolder,
+  uploadsFolder: resolve(__dirname, '..', '..', 'tmp', 'uploads'),
   storage: multer.diskStorage({
-    destination: resolve(__dirname, '..', '..', 'tmp', 'uploads'),
+    destination: resolve(tmpFolder),
     filename: (req, file, cb) => {
       crypto.randomBytes(16, (err, res) => {
         if (err) return cb(err, file.originalname);
